@@ -13,6 +13,18 @@ Una aplicación Next.js para el sitio público y su panel privado. Ambas áreas 
 
 El acceso privado usa `/${ADMIN_PATH}`; por defecto es `/admin-la-fiesta`. Configura `ADMIN_PATH` sin barras iniciales/finales antes de iniciar Next.js. El middleware protege la ruta, comprueba la sesión Supabase y deniega perfiles inactivos. RLS vuelve a validar rol y permisos en cada consulta.
 
+## Despliegue en Vercel
+
+Importa el repositorio `FiestaBrava` en Vercel como proyecto Next.js. Usa `npm run build` como build command y deja que Vercel detecte Next.js. Configura estas variables en Production (y Preview si corresponde):
+
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `NEXT_PUBLIC_SITE_URL` (dominio público de Fiesta Brava)
+- `ADMIN_PATH` (por ejemplo `admin-la-fiesta`)
+- `SUPABASE_SERVICE_ROLE_KEY` (secreto de servidor para invitar usuarios; nunca agregarlo al repositorio ni anteponerle `NEXT_PUBLIC_`)
+
+Las variables `NEXT_PUBLIC_` son públicas por diseño; RLS limita los datos accesibles con la clave anónima. No copies valores secretos a `.env.example`, README ni al código fuente.
+
 ## Datos y publicación
 
 `src/lib/data.ts` es la capa tipada de consultas que alimenta el sitio público. Visitantes solo reciben filas activas, visibles y no archivadas. Las ediciones guardan `updated_at` y `updated_by`; las eliminaciones se archivan. Al guardar se invalida la etiqueta `public-menu` y el sitio se revalida bajo demanda (además de la ventana de caché de 60 segundos).
