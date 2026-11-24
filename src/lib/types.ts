@@ -1,0 +1,15 @@
+export type Role = "admin" | "editor";
+export type Entity = "products" | "categories" | "options" | "combos" | "combo_items" | "promotions" | "business_hours" | "gallery" | "business_settings" | "social_links" | "payment_methods";
+export type BaseRecord = { id: string; name?: string; title?: string; description?: string | null; image_url?: string | null; active: boolean; visible_publicly: boolean; sort_order: number; created_at: string; updated_at: string; created_by?: string | null; updated_by?: string | null; deleted_at?: string | null };
+export type Category = BaseRecord & { name: string; slug: string };
+export type Product = BaseRecord & { name: string; slug: string; description: string | null; price: number; category_id: string | null; featured: boolean; options?: ProductOption[] };
+export type ProductOption = BaseRecord & { name: string; product_id: string; price_delta: number; option_group: string };
+export type ComboItem = BaseRecord & { combo_id: string; product_id: string; quantity: number; product?: Pick<Product,"name"> };
+export type Combo = BaseRecord & { name: string; slug: string; description: string | null; price: number; image_url: string | null; items?: ComboItem[] };
+export type Promotion = BaseRecord & { title: string; description: string | null; starts_at: string | null; ends_at: string | null; image_url: string | null };
+export type BusinessHours = BaseRecord & { day_of_week: number; open_time: string | null; close_time: string | null; is_closed: boolean };
+export type GalleryItem = BaseRecord & { image_url: string; caption: string | null };
+export type BusinessSettings = BaseRecord & { id: string; business_name: string; tagline: string; description: string; address: string; phone: string; whatsapp: string; currency: string };
+export type SocialLink = BaseRecord & { platform: string; url: string };
+export type PaymentMethod = BaseRecord & { name: string; details: string | null };
+export type PublicMenu = { categories: Category[]; products: Product[]; combos: Combo[]; comboItems: ComboItem[]; promotions: Promotion[]; hours: BusinessHours[]; gallery: GalleryItem[]; settings: BusinessSettings | null; socials: SocialLink[]; payments: PaymentMethod[] };
