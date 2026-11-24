@@ -2,6 +2,10 @@
 create extension if not exists pgcrypto;
 
 create or replace function public.set_updated_at() returns trigger language plpgsql as $$ begin new.updated_at = now(); return new; end; $$;
+-- Keep SECURITY DEFINER helpers outside PostgREST's exposed public schema.
+create schema if not exists private;
+revoke all on schema private from public, anon, authenticated;
+grant usage on schema private to authenticated;
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   email text, full_name text,
@@ -11,10 +15,11 @@ create table if not exists public.profiles (
 );
 alter table public.profiles enable row level security;
 
-create or replace function public.current_user_role() returns text language sql stable security definer set search_path=public as $$ select role from public.profiles where id=auth.uid() and active=true $$;
-create or replace function public.is_admin() returns boolean language sql stable security definer set search_path=public as $$ select coalesce(public.current_user_role()='admin',false) $$;
-create or replace function public.can_edit_content() returns boolean language sql stable security definer set search_path=public as $$ select coalesce(public.current_user_role() in ('admin','editor'),false) $$;
-grant execute on function public.current_user_role(), public.is_admin(), public.can_edit_content() to anon, authenticated;
+create or replace function private.current_user_role() returns text language sql stable security definer set search_path='' as $$ select role from public.profiles where id=auth.uid() and active=true $$;
+create or replace function private.is_admin() returns boolean language sql stable security definer set search_path='' as $$ select coalesce(private.current_user_role()='admin',false) $$;
+create or replace function private.can_edit_content() returns boolean language sql stable security definer set search_path='' as $$ select coalesce(private.current_user_role() in ('admin','editor'),false) $$;
+revoke all on function private.current_user_role(), private.is_admin(), private.can_edit_content() from public, anon;
+grant execute on function private.current_user_role(), private.is_admin(), private.can_edit_content() to authenticated;
 
 create table if not exists public.categories (
  id uuid primary key default gen_random_uuid(), name text not null, slug text not null unique, description text,
@@ -81,10 +86,12 @@ do $$ declare t text; begin
  end loop;
 end $$;
 
-create or replace function public.handle_new_user() returns trigger language plpgsql security definer set search_path=public as $$
+create or replace function private.handle_new_user() returns trigger language plpgsql security definer set search_path='' as $$
 begin insert into public.profiles(id,email,full_name,role,active) values(new.id,new.email,new.raw_user_meta_data->>'full_name','editor',false) on conflict(id) do nothing; return new; end; $$;
+revoke all on function private.handle_new_user() from public, anon, authenticated;
 drop trigger if exists on_auth_user_created on auth.users;
-create trigger on_auth_user_created after insert on auth.users for each row execute procedure public.handle_new_user();
+create trigger on_auth_user_created after insert on auth.users for each row execute function private.handle_new_user();
+drop function if exists public.handle_new_user();
 
 do $$ declare t text; begin
  foreach t in array array['categories','products','options','combos','combo_items','promotions','business_hours','gallery','business_settings','social_links','payment_methods'] loop
@@ -93,18 +100,22 @@ do $$ declare t text; begin
    if t='business_settings' then
      execute format('create policy public_read on public.%I for select to anon, authenticated using (active and visible_publicly and deleted_at is null)',t);
      execute format('drop policy if exists admin_write on public.%I',t);
-     execute format('create policy admin_write on public.%I for all to authenticated using (public.is_admin()) with check (public.is_admin())',t);
+     execute format('create policy admin_write on public.%I for all to authenticated using (private.is_admin()) with check (private.is_admin())',t);
    else
      execute format('create policy public_read on public.%I for select to anon, authenticated using (active and visible_publicly and deleted_at is null)',t);
      execute format('drop policy if exists editor_write on public.%I',t);
-     execute format('create policy editor_write on public.%I for all to authenticated using (public.can_edit_content()) with check (public.can_edit_content())',t);
+     execute format('create policy editor_write on public.%I for all to authenticated using (private.can_edit_content()) with check (private.can_edit_content())',t);
    end if;
  end loop;
 end $$;
 drop policy if exists profile_self_read on public.profiles;
-create policy profile_self_read on public.profiles for select to authenticated using(id=auth.uid() or public.is_admin());
+create policy profile_self_read on public.profiles for select to authenticated using(id=auth.uid() or private.is_admin());
 drop policy if exists admin_profiles_write on public.profiles;
-create policy admin_profiles_write on public.profiles for all to authenticated using(public.is_admin()) with check(public.is_admin());
+create policy admin_profiles_write on public.profiles for all to authenticated using(private.is_admin()) with check(private.is_admin());
+-- Remove legacy public-schema helpers from earlier iterations of this schema.
+drop function if exists public.current_user_role();
+drop function if exists public.is_admin();
+drop function if exists public.can_edit_content();
 grant select on public.categories,public.products,public.options,public.combos,public.combo_items,public.promotions,public.business_hours,public.gallery,public.business_settings,public.social_links,public.payment_methods to anon,authenticated;
 grant insert,update,delete on public.categories,public.products,public.options,public.combos,public.combo_items,public.promotions,public.business_hours,public.gallery,public.business_settings,public.social_links,public.payment_methods,public.profiles to authenticated;
 grant select on public.profiles to authenticated;
@@ -114,11 +125,11 @@ insert into storage.buckets(id,name,public,file_size_limit,allowed_mime_types) v
 drop policy if exists fiesta_media_read on storage.objects;
 create policy fiesta_media_read on storage.objects for select to anon,authenticated using(bucket_id='fiesta-media');
 drop policy if exists fiesta_media_upload on storage.objects;
-create policy fiesta_media_upload on storage.objects for insert to authenticated with check(bucket_id='fiesta-media' and public.can_edit_content());
+create policy fiesta_media_upload on storage.objects for insert to authenticated with check(bucket_id='fiesta-media' and private.can_edit_content());
 drop policy if exists fiesta_media_update on storage.objects;
-create policy fiesta_media_update on storage.objects for update to authenticated using(bucket_id='fiesta-media' and public.can_edit_content()) with check(bucket_id='fiesta-media' and public.can_edit_content());
+create policy fiesta_media_update on storage.objects for update to authenticated using(bucket_id='fiesta-media' and private.can_edit_content()) with check(bucket_id='fiesta-media' and private.can_edit_content());
 drop policy if exists fiesta_media_delete on storage.objects;
-create policy fiesta_media_delete on storage.objects for delete to authenticated using(bucket_id='fiesta-media' and public.can_edit_content());
+create policy fiesta_media_delete on storage.objects for delete to authenticated using(bucket_id='fiesta-media' and private.can_edit_content());
 
 -- Bootstrap: after registering the first admin in Supabase Auth, run this once with their email:
 -- update public.profiles set role='admin', active=true where email='you@example.com';
