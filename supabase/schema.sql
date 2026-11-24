@@ -1,7 +1,7 @@
 -- Fiesta Brava: apply once in Supabase SQL Editor.
 create extension if not exists pgcrypto;
 
-create or replace function public.set_updated_at() returns trigger language plpgsql as $$ begin new.updated_at = now(); return new; end; $$;
+create or replace function public.set_updated_at() returns trigger language plpgsql set search_path='' as $$ begin new.updated_at = pg_catalog.now(); return new; end; $$;
 -- Keep SECURITY DEFINER helpers outside PostgREST's exposed public schema.
 create schema if not exists private;
 revoke all on schema private from public, anon, authenticated;
