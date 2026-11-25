@@ -1,11 +1,38 @@
-import Image from "next/image";
+"use client";
+import { useCallback, useEffect, useState } from "react";
 import { ArrowDown, ArrowRight, Instagram, MapPin, Phone, Sparkles } from "lucide-react";
-import { getPublicMenu } from "@/lib/data";
+import { fetchPublicMenu } from "@/lib/public-menu";
 import { money, weekdays } from "@/lib/format";
 
-export const revalidate=60;
-export default async function Home() {
-  const data=await getPublicMenu(); const settings=data.settings;
+export default function Home() {
+  const [data, setData] = useState<import("@/lib/types").PublicMenu | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const refresh = useCallback(async () => {
+    try {
+      const menu = await fetchPublicMenu();
+      setData(menu);
+      setLoadError(null);
+    } catch {
+      setLoadError("No pudimos cargar el menú. Revisa tu conexión e inténtalo de nuevo.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+  useEffect(() => {
+    void refresh();
+    const interval = window.setInterval(() => { if (document.visibilityState === "visible") void refresh(); }, 30_000);
+    const onFocus = () => { if (document.visibilityState === "visible") void refresh(); };
+    document.addEventListener("visibilitychange", onFocus);
+    return () => { window.clearInterval(interval); document.removeEventListener("visibilitychange", onFocus); };
+  }, [refresh]);
+  if (!data) return <main className="container" style={{minHeight:"70vh",display:"grid",placeItems:"center",textAlign:"center"}}>
+    <section><div className="eyebrow">FIESTA BRAVA</div><h1 className="serif">{loading ? "Cargando nuestro menú…" : "No pudimos conectar"}</h1>
+      <p style={{color:"var(--muted)"}}>{loadError || "Estamos preparando la carta para ti."}</p>
+      {!loading && <button className="button" onClick={() => { setLoading(true); void refresh(); }}>Volver a intentar</button>}
+    </section>
+  </main>;
+  const settings=data.settings;
   const phone=settings?.phone||""; const wa=(settings?.whatsapp||phone).replace(/\D/g,""); const waUrl=wa?`https://wa.me/${wa}`:"#menu";
   return <main>
     <header className="container" style={{height:82,display:"flex",alignItems:"center",justifyContent:"space-between"}}>

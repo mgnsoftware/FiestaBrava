@@ -1,1 +1,0 @@
-export default function Unauthorized(){return <main style={{minHeight:"70vh",display:"grid",placeItems:"center",textAlign:"center",padding:25}}><div><div className="eyebrow">ACCESO NO AUTORIZADO</div><h1 className="serif">Tu cuenta aún no tiene acceso.</h1><p>Solicita al administrador que active tu perfil.</p><a className="button" href="/">Volver al sitio</a></div></main>}

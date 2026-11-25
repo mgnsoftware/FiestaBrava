@@ -1,44 +1,22 @@
-# Fiesta Brava
+# Fiesta Brava · GitHub Pages
 
-Una aplicación Next.js para el sitio público y su panel privado. Ambas áreas consultan las mismas tablas de Supabase; no hay un segundo proyecto ni credenciales privilegiadas en el navegador.
+Esta rama (`githubpages`) contiene la versión pública estática del sitio. El menú, productos, precios, variantes, combos, promociones, horarios, galería, dirección, WhatsApp y métodos de pago se consultan directamente desde las mismas tablas de Supabase. El navegador vuelve a consultar cada 30 segundos y al regresar a la pestaña.
 
-## Puesta en marcha
+## Publicar en GitHub Pages
 
-1. Instala Node.js 20.9 o posterior.
-2. Ejecuta `npm install` y copia `.env.example` a `.env.local`.
-3. Completa `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_ANON_KEY` con los datos del proyecto Supabase.
-4. Ejecuta `supabase/schema.sql` en el SQL Editor de Supabase.
-5. Registra el primer usuario desde Supabase Auth y ejecuta la consulta de bootstrap comentada al final de `schema.sql` con su correo. Los siguientes usuarios pueden registrarse y el administrador cambia su rol/estado en «Usuarios y permisos».
-6. Ejecuta `npm run dev`.
+1. Publica esta rama en el repositorio `mgnsoftware/FiestaBrava`.
+2. En **Settings → Pages**, selecciona **GitHub Actions** como origen.
+3. En **Settings → Secrets and variables → Actions → Variables**, crea:
+   - `NEXT_PUBLIC_SUPABASE_URL`: URL del proyecto activo `fiestaBrava`.
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: clave `sb_publishable_...` del proyecto.
+4. Cada push a `githubpages` ejecuta el workflow y publica en `https://mgnsoftware.github.io/FiestaBrava/`.
 
-El acceso privado usa `/${ADMIN_PATH}`; por defecto es `/admin-la-fiesta`. Configura `ADMIN_PATH` sin barras iniciales/finales antes de iniciar Next.js. El middleware protege la ruta, comprueba la sesión Supabase y deniega perfiles inactivos. RLS vuelve a validar rol y permisos en cada consulta.
+La clave publishable es pública por diseño. Row Level Security debe permanecer habilitado: los visitantes solo pueden leer registros activos, visibles y no archivados. Nunca agregues `SUPABASE_SERVICE_ROLE_KEY` a esta rama ni a variables públicas.
 
-## Despliegue en Vercel
+## Desarrollo local
 
-Importa el repositorio `FiestaBrava` en Vercel como proyecto Next.js. Usa `npm run build` como build command y deja que Vercel detecte Next.js. Configura estas variables en Production (y Preview si corresponde):
+Usa Node.js 20.9 o posterior, instala dependencias con `npm ci`, copia `.env.example` a `.env.local` y define `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_ANON_KEY`. Después inicia con `npm run dev`.
 
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- `NEXT_PUBLIC_SITE_URL` (dominio público de Fiesta Brava)
-- `ADMIN_PATH` (por ejemplo `admin-la-fiesta`)
-- `SUPABASE_SERVICE_ROLE_KEY` (secreto de servidor para invitar usuarios; nunca agregarlo al repositorio ni anteponerle `NEXT_PUBLIC_`)
+La app no incluye el panel administrativo en esta rama porque GitHub Pages solo sirve archivos estáticos y no puede ejecutar middleware ni Server Actions. La versión con panel protegido permanece en `main`. Administra el contenido desde esa versión; los cambios publicados en Supabase se reflejan aquí en un máximo aproximado de 30 segundos.
 
-Las variables `NEXT_PUBLIC_` son públicas por diseño; RLS limita los datos accesibles con la clave anónima. No copies valores secretos a `.env.example`, README ni al código fuente.
-
-## Datos y publicación
-
-`src/lib/data.ts` es la capa tipada de consultas que alimenta el sitio público. Visitantes solo reciben filas activas, visibles y no archivadas. Las ediciones guardan `updated_at` y `updated_by`; las eliminaciones se archivan. Al guardar se invalida la etiqueta `public-menu` y el sitio se revalida bajo demanda (además de la ventana de caché de 60 segundos).
-
-La edición y publicación del menú, categorías, variantes, combos, promociones, horarios, galería, configuración comercial, redes y pagos está disponible desde el panel. La entidad «Elementos de combos» dispone también de esquema; para enlazar elementos con combos/productos usa sus UUID. El panel crea contenido como oculto hasta que se active «Visible en el sitio público».
-
-## Imágenes
-
-El esquema crea el bucket público `fiesta-media`, permite lecturas públicas y restringe las cargas y eliminaciones a editores/administradores. Usa URLs públicas del bucket en los campos de imagen.
-
-## Seguridad y límites
-
-- La clave anónima de Supabase puede estar en `NEXT_PUBLIC_`; RLS limita cada tabla.
-- `SUPABASE_SERVICE_ROLE_KEY` es solo servidor y no se usa en el flujo habitual del sitio.
-- El primer administrador se activa mediante SQL de bootstrap. Los nuevos registros quedan inactivos hasta ser autorizados; el admin cambia roles/estados en la lista de usuarios (las cuentas se crean desde Supabase Auth).
-- El rol editor administra contenido; únicamente el admin modifica configuración comercial y perfiles.
-- `robots.ts` excluye la ruta privada y `sitemap.ts` solo declara la página pública.
+El proyecto Supabase activo no contiene todavía productos ni precios publicados. El sitio mostrará automáticamente los registros que se creen y se marquen como activos y visibles.

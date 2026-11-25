@@ -1,2 +1,4 @@
 import type { MetadataRoute } from "next";
-export default function sitemap(): MetadataRoute.Sitemap { return [{ url: process.env.NEXT_PUBLIC_SITE_URL || "https://example.com", lastModified: new Date() }]; }
+export const dynamic = "force-static";
+const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://mgnsoftware.github.io/FiestaBrava").replace(/\/$/, "");
+export default function sitemap(): MetadataRoute.Sitemap { return [{ url: `${siteUrl}/`, lastModified: new Date() }]; }
