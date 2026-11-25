@@ -1,17 +1,20 @@
 "use client";
+
 import { useCallback, useEffect, useState } from "react";
-import { ArrowDown, ArrowRight, Instagram, MapPin, Phone, Sparkles } from "lucide-react";
+import { ArrowDown, ArrowRight, Clock3, MapPin, Phone, Sparkles, Utensils } from "lucide-react";
 import { fetchPublicMenu } from "@/lib/public-menu";
 import { money, weekdays } from "@/lib/format";
+import type { Combo, Product, PublicMenu } from "@/lib/types";
+
+const brandLogo = "https://mgnsoftware.github.io/FiestaBrava/assets/fiesta-brava-logo.png";
 
 export default function Home() {
-  const [data, setData] = useState<import("@/lib/types").PublicMenu | null>(null);
+  const [data, setData] = useState<PublicMenu | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const refresh = useCallback(async () => {
     try {
-      const menu = await fetchPublicMenu();
-      setData(menu);
+      setData(await fetchPublicMenu());
       setLoadError(null);
     } catch {
       setLoadError("No pudimos cargar el menú. Revisa tu conexión e inténtalo de nuevo.");
@@ -19,43 +22,152 @@ export default function Home() {
       setLoading(false);
     }
   }, []);
+
   useEffect(() => {
     void refresh();
-    const interval = window.setInterval(() => { if (document.visibilityState === "visible") void refresh(); }, 30_000);
-    const onFocus = () => { if (document.visibilityState === "visible") void refresh(); };
+    const interval = window.setInterval(() => {
+      if (document.visibilityState === "visible") void refresh();
+    }, 30_000);
+    const onFocus = () => {
+      if (document.visibilityState === "visible") void refresh();
+    };
     document.addEventListener("visibilitychange", onFocus);
-    return () => { window.clearInterval(interval); document.removeEventListener("visibilitychange", onFocus); };
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", onFocus);
+    };
   }, [refresh]);
-  if (!data) return <main className="container" style={{minHeight:"70vh",display:"grid",placeItems:"center",textAlign:"center"}}>
-    <section><div className="eyebrow">FIESTA BRAVA</div><h1 className="serif">{loading ? "Cargando nuestro menú…" : "No pudimos conectar"}</h1>
-      <p style={{color:"var(--muted)"}}>{loadError || "Estamos preparando la carta para ti."}</p>
-      {!loading && <button className="button" onClick={() => { setLoading(true); void refresh(); }}>Volver a intentar</button>}
-    </section>
-  </main>;
-  const settings=data.settings;
-  const phone=settings?.phone||""; const wa=(settings?.whatsapp||phone).replace(/\D/g,""); const waUrl=wa?`https://wa.me/${wa}`:"#menu";
-  return <main>
-    <header className="container" style={{height:82,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-      <a href="#inicio" style={{display:"flex",alignItems:"center",gap:10,fontWeight:800,fontSize:19}}><span style={{width:37,height:37,borderRadius:50,background:"var(--orange)",color:"white",display:"grid",placeItems:"center",fontSize:19}}>F</span> {settings?.business_name||"FIESTA BRAVA"}</a>
-      <nav style={{display:"flex",gap:28,fontSize:13,fontWeight:600}} className="nav"><a href="#menu">Menú</a><a href="#nosotros">Nosotros</a><a href="#visitanos">Visítanos</a></nav>
-      <a className="button" href={waUrl}>Pide por WhatsApp <ArrowRight size={15} style={{marginLeft:8}}/></a>
-    </header>
-    <section id="inicio" style={{paddingTop:22}}><div className="container" style={{position:"relative",minHeight:545,borderRadius:26,overflow:"hidden",background:"linear-gradient(90deg,#17281f 0%,#23382c 48%,#344237 100%)",color:"white",display:"flex",alignItems:"center"}}>
-      <div style={{padding:"60px 7%",position:"relative",zIndex:2,maxWidth:670}}><div className="eyebrow" style={{color:"#ffa47c"}}>BUEN SABOR, BUENOS MOMENTOS</div><h1 className="serif" style={{fontSize:"clamp(54px,8vw,88px)",lineHeight:.99,letterSpacing:"-.04em",margin:"24px 0"}}>La mesa está<br/>lista para ti<span style={{color:"#f27643"}}>.</span></h1><p style={{maxWidth:405,color:"#d6dbd2",lineHeight:1.8,fontSize:16}}>{settings?.tagline||"Recetas con carácter, ingredientes frescos y ese sabor que siempre invita a compartir."}</p><div style={{display:"flex",gap:12,marginTop:30,flexWrap:"wrap"}}><a className="button" href="#menu">Descubre el menú <ArrowDown size={15} style={{marginLeft:8}}/></a><a className="button button-outline" style={{color:"white",borderColor:"#657065"}} href="#nosotros">Nuestra historia</a></div></div>
-      <div className="hero-food" style={{position:"absolute",right:"3%",top:"10%",width:"45%",height:"80%",borderRadius:"50%",background:"radial-gradient(ellipse,#e7a755 0%,#b86335 34%,#6e3f2d 56%,transparent 71%)",opacity:.92}}><div style={{position:"absolute",inset:"16%",borderRadius:"50%",background:"radial-gradient(ellipse,#dbb875 0%,#ba6133 63%,#723c2b 67%,#6b402f 71%,transparent 72%)",boxShadow:"0 24px 60px #0005"}}/><span style={{position:"absolute",bottom:"11%",right:"5%",padding:"15px 19px",background:"#faf7f0",borderRadius:16,color:"var(--ink)",fontSize:13,boxShadow:"0 12px 36px #0003"}}><b style={{display:"block",fontSize:17}}>Hecho con cariño</b>Servido al momento</span></div>
-      <div style={{position:"absolute",bottom:24,left:"7%",fontSize:11,letterSpacing:".13em",color:"#b9c2b8"}}>SABOR · CALIDAD · TRADICIÓN</div></div></section>
-    {data.promotions.length>0&&<section style={{paddingTop:55}} className="container"><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:14}}>{data.promotions.map((p)=><article key={p.id} className="card" style={{padding:20,background:"#fff3e9",borderColor:"#f4ddca"}}><Sparkles size={18} color="var(--orange)"/><h3 className="serif" style={{fontSize:23,margin:"10px 0 6px"}}>{p.title}</h3><p style={{margin:0,color:"var(--muted)",fontSize:14,lineHeight:1.6}}>{p.description}</p></article>)}</div></section>}
-    <section className="section" id="menu"><div className="container"><div className="section-head"><div><div className="eyebrow">DIRECTO A TU MESA</div><h2 className="serif">Nuestro menú</h2></div><span style={{color:"var(--muted)",fontSize:14}}>Preparado al momento, para disfrutar sin prisa.</span></div>
-      {data.categories.length===0&&data.products.length===0&&data.combos.length===0?<div className="card" style={{padding:42,textAlign:"center",color:"var(--muted)"}}>Muy pronto encontrarás aquí nuestro menú. Síguenos para enterarte de las novedades.</div>:<>
-      {data.categories.map((cat)=><div key={cat.id} style={{marginBottom:38}}><h3 className="serif" style={{fontSize:27,margin:"0 0 16px"}}>{cat.name}</h3>{cat.description&&<p style={{margin:"-6px 0 18px",color:"var(--muted)"}}>{cat.description}</p>}<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(255px,1fr))",gap:14}}>{data.products.filter(p=>p.category_id===cat.id).map(p=><ProductCard key={p.id} item={p} currency={settings?.currency}/>)}</div></div>)}
-      {data.products.some(p=>!p.category_id||!data.categories.some(c=>c.id===p.category_id))&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(255px,1fr))",gap:14}}>{data.products.filter(p=>!p.category_id||!data.categories.some(c=>c.id===p.category_id)).map(p=><ProductCard key={p.id} item={p} currency={settings?.currency}/>)}</div>}
-      {data.combos.length>0&&<><div className="section-head" style={{marginTop:50}}><div><div className="eyebrow">PARA COMPARTIR</div><h2 className="serif">Combos</h2></div></div><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(255px,1fr))",gap:14}}>{data.combos.map(c=><ProductCard key={c.id} item={c} currency={settings?.currency}/>)}</div></>}
-      </>}
-    </div></section>
-    {data.gallery.length>0&&<section className="section" style={{background:"#f0ece3"}}><div className="container"><div className="section-head"><div><div className="eyebrow">ASÍ SE VIVE</div><h2 className="serif">Momentos Bravos</h2></div></div><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))",gap:14}}>{data.gallery.map(g=><figure className="card" key={g.id} style={{margin:0}}><img src={g.image_url} alt={g.caption||g.name||"Galería Fiesta Brava"} style={{width:"100%",height:230,objectFit:"cover"}}/><figcaption style={{padding:13,fontSize:13}}>{g.caption}</figcaption></figure>)}</div></div></section>}
-    <section className="section" id="nosotros"><div className="container" style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(290px,1fr))",gap:50,alignItems:"center"}}><div style={{height:340,borderRadius:24,background:"linear-gradient(145deg,#e3c18d,#b9663d 45%,#36503d)",display:"grid",placeItems:"center",color:"white",fontSize:92}}><span className="serif">F.</span></div><div><div className="eyebrow">DE NUESTRA COCINA A TU MESA</div><h2 className="serif" style={{fontSize:47,lineHeight:1.08,margin:"14px 0 18px"}}>El ingrediente secreto siempre es compartir.</h2><p style={{color:"var(--muted)",lineHeight:1.8}}>{settings?.description||"En Fiesta Brava creemos que la mejor comida se disfruta juntos. Cocinamos con ingredientes frescos, recetas con corazón y mucho sabor para que cada visita se convierta en un buen recuerdo."}</p><a className="button" href={waUrl} style={{marginTop:10}}>Ven a conocernos <ArrowRight size={15} style={{marginLeft:8}}/></a></div></div></section>
-    <footer id="visitanos" style={{background:"var(--green)",color:"white",padding:"52px 0 24px"}}><div className="container"><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(190px,1fr))",gap:35,paddingBottom:35}}><div><div style={{fontWeight:800,fontSize:20}}>FIESTA BRAVA</div><p style={{color:"#c1c7bc",lineHeight:1.7,fontSize:14}}>Sabor que reúne.<br/>Hecho con cariño, para compartir.</p>{data.socials.map(s=><a key={s.id} href={s.url} aria-label={s.platform} style={{display:"inline-flex",marginRight:12}}><Instagram size={18}/></a>)}</div><div><div className="eyebrow" style={{color:"#ffa47c"}}>ENCUÉNTRANOS</div><p style={{color:"#d8ddd3",fontSize:14,lineHeight:1.9}}>{settings?.address||"Agrega tu dirección desde el panel de administración."}</p>{phone&&<a href={`tel:${phone}`} style={{display:"flex",gap:8,alignItems:"center",fontSize:14}}><Phone size={15}/>{phone}</a>}</div><div><div className="eyebrow" style={{color:"#ffa47c"}}>HORARIOS</div>{data.hours.length?data.hours.sort((a,b)=>a.day_of_week-b.day_of_week).map(h=><p key={h.id} style={{fontSize:13,color:"#d8ddd3",margin:"8px 0"}}>{weekdays[h.day_of_week]} · {h.is_closed?"Cerrado":`${h.open_time?.slice(0,5)||""} – ${h.close_time?.slice(0,5)||""}`}</p>):<p style={{color:"#d8ddd3",fontSize:14}}>Consulta nuestros horarios por WhatsApp.</p>}</div><div><div className="eyebrow" style={{color:"#ffa47c"}}>PAGO</div><p style={{fontSize:14,color:"#d8ddd3"}}>{data.payments.map(p=>p.name).join(" · ")||"Efectivo y transferencia"}</p><a href="#visitanos" style={{display:"flex",gap:7,alignItems:"center",fontSize:13,marginTop:19}}><MapPin size={15}/> Cómo llegar</a></div></div><div style={{borderTop:"1px solid #ffffff26",paddingTop:20,color:"#abb4a9",fontSize:12,display:"flex",justifyContent:"space-between"}}><span>© {new Date().getFullYear()} {settings?.business_name||"Fiesta Brava"}</span><span>Preparado con cariño</span></div></div></footer>
-    <style>{`@media(max-width:600px){.nav{display:none!important}.hero-food{opacity:.27;right:-19%!important;width:76%!important}.section-head>span{max-width:300px}}`}</style>
-  </main>;
+
+  if (!data) return (
+    <main className="loading-screen">
+      <section className="loading-card">
+        <div className="loading-mark">FB</div>
+        <p className="eyebrow">LA FIESTA BRAVA · TAQUERÍA</p>
+        <h1>{loading ? "Cargando nuestro menú…" : "No pudimos conectar"}</h1>
+        <p className="muted">{loadError || "El sabor que embiste tu antojo."}</p>
+        {!loading && <button className="button" onClick={() => { setLoading(true); void refresh(); }}>Volver a intentar</button>}
+      </section>
+    </main>
+  );
+
+  const settings = data.settings;
+  const phone = settings?.phone || "";
+  const wa = (settings?.whatsapp || phone).replace(/\D/g, "");
+  const waUrl = wa ? `https://wa.me/${wa}` : "#menu";
+  const hours = [...data.hours].sort((a, b) => a.day_of_week - b.day_of_week);
+
+  return (
+    <main>
+      <header className="site-header">
+        <a className="brand" href="#inicio" aria-label="La Fiesta Brava, inicio">
+          <img src={brandLogo} alt="" />
+          <span><b>LA FIESTA</b><strong>BRAVA</strong><small>TAQUERÍA</small></span>
+        </a>
+        <nav className="site-nav" aria-label="Navegación principal">
+          <a href="#inicio">Inicio</a><a href="#menu">Menú</a><a href="#combos">Combos</a>
+          {data.promotions.length > 0 && <a href="#promociones">Promociones</a>}
+          <a href="#ubicacion">Ubicación</a>
+        </nav>
+        <a className="order-button" href={waUrl} target="_blank" rel="noreferrer">
+          <span>Pedir ahora</span><span className="whatsapp-mark" aria-hidden="true">◉</span>
+        </a>
+      </header>
+
+      <section id="inicio" className="hero">
+        <div className="hero-copy">
+          <p className="eyebrow">EL SABOR QUE</p>
+          <h1><span>EMBISTE</span><em>TU ANTOJO</em></h1>
+          <p className="hero-tagline">{settings?.tagline || "Tacos hechos con pasión, sabor y tradición"}</p>
+          <a href="#menu" className="button">Ver menú <ArrowDown size={17} /></a>
+          <div className="hero-stamp"><span>★</span> SABOR · CALIDAD · TRADICIÓN <span>★</span></div>
+        </div>
+        <div className="hero-art" role="img" aria-label="Logotipo de La Fiesta Brava">
+          <img src={brandLogo} alt="La Fiesta Brava Taquería" />
+          <div className="hero-art-caption">TACOS HECHOS CON PASIÓN</div>
+        </div>
+      </section>
+
+      <section id="menu" className="content-section">
+        <SectionTitle eyebrow="TAQUERÍA · ANTOJITOS · MUCHO SABOR" title="Nuestro menú" />
+        {data.categories.length === 0 && data.products.length === 0 ? (
+          <div className="empty-state">Muy pronto encontrarás aquí nuestro menú.</div>
+        ) : (
+          <div className="menu-groups">
+            {data.categories.map((category) => {
+              const products = data.products.filter((product) => product.category_id === category.id);
+              if (!products.length) return null;
+              return (
+                <section className="menu-group" key={category.id}>
+                  <div className="group-heading"><span>★</span><h3>{category.name}</h3><span>★</span></div>
+                  {category.description && <p className="group-description">{category.description}</p>}
+                  <div className="product-grid">
+                    {products.map((product) => <ProductCard key={product.id} item={product} currency={settings?.currency} />)}
+                  </div>
+                </section>
+              );
+            })}
+            {data.products.filter((product) => !product.category_id || !data.categories.some((category) => category.id === product.category_id)).length > 0 && (
+              <div className="product-grid">
+                {data.products.filter((product) => !product.category_id || !data.categories.some((category) => category.id === product.category_id))
+                  .map((product) => <ProductCard key={product.id} item={product} currency={settings?.currency} />)}
+              </div>
+            )}
+          </div>
+        )}
+      </section>
+
+      {data.combos.length > 0 && <section id="combos" className="content-section combos-section">
+        <SectionTitle eyebrow="PARA COMPARTIR" title="Combos" />
+        <div className="combo-grid">{data.combos.map((combo) => <ComboCard key={combo.id} item={combo} currency={settings?.currency} />)}</div>
+      </section>}
+
+      {data.promotions.length > 0 && <section id="promociones" className="content-section promotions-section">
+        <SectionTitle eyebrow="APROVECHA" title="Promociones" />
+        <div className="promotion-grid">{data.promotions.map((promotion) => (
+          <article className="promotion-card" key={promotion.id}>
+            <Sparkles size={20} aria-hidden="true" />
+            <div><h3>{promotion.title}</h3><p>{promotion.description}</p></div>
+          </article>
+        ))}</div>
+      </section>}
+
+      <section className="contact-band">
+        <div className="contact-copy"><p className="eyebrow">¿ANTOJO?</p><h2>¡Nosotros llevamos!</h2><p>El sabor que embiste tu antojo.</p></div>
+        <div className="contact-actions">
+          {phone && <a href={`tel:${phone.replace(/[^+\d]/g, "")}`} className="contact-phone"><Phone size={19} />{phone}</a>}
+          <a className="button button-green" href={waUrl} target="_blank" rel="noreferrer">Pide por WhatsApp <ArrowRight size={17} /></a>
+        </div>
+      </section>
+
+      <footer id="ubicacion" className="site-footer">
+        <div className="footer-brand"><img src={brandLogo} alt="" /><div><b>LA FIESTA BRAVA</b><small>EL SABOR QUE EMBISTE TU ANTOJO</small></div></div>
+        <div className="footer-detail"><MapPin size={19} /><span>{settings?.address || "Ubicación por confirmar"}</span></div>
+        {hours.length > 0 && <div className="footer-detail"><Clock3 size={19} /><span>{hours.map((hour) => `${weekdays[hour.day_of_week]}: ${hour.is_closed ? "Cerrado" : `${hour.open_time?.slice(0, 5)} – ${hour.close_time?.slice(0, 5)}`}`).join(" · ")}</span></div>}
+        {data.payments.length > 0 && <div className="footer-detail"><Utensils size={19} /><span>{data.payments.map((payment) => payment.name).join(" · ")}</span></div>}
+        <div className="footer-bottom"><span>© {new Date().getFullYear()} {settings?.business_name || "La Fiesta Brava Taquería"}</span><span>Tlalnepantla, Estado de México</span></div>
+      </footer>
+    </main>
+  );
 }
-function ProductCard({item,currency}:{item:{id:string;name:string;description?:string|null;image_url?:string|null;price:number;options?:{id:string;name:string;price_delta:number}[];items?:{id:string;quantity:number;product?:{name:string}}[]};currency?:string|null}) { return <article className="card" style={{display:"flex",minHeight:110}}>{item.image_url?<img src={item.image_url} alt="" style={{width:106,objectFit:"cover"}}/>:<div style={{width:106,background:"linear-gradient(145deg,#f3d7b3,#e3a177)",display:"grid",placeItems:"center",fontSize:31}}>✳</div>}<div style={{padding:"15px 16px",flex:1}}><div style={{display:"flex",justifyContent:"space-between",gap:10,alignItems:"start"}}><h4 style={{margin:0,fontSize:16}}>{item.name}</h4><strong style={{color:"var(--orange)",whiteSpace:"nowrap"}}>{money(item.price,currency||"MXN")}</strong></div><p style={{fontSize:12,lineHeight:1.5,color:"var(--muted)",margin:"7px 0 0"}}>{item.description||item.items?.map(i=>`${i.quantity} × ${i.product?.name||"Producto"}`).join(" · ")||"Preparado con ingredientes frescos."}</p>{item.options?.map(o=><span key={o.id} style={{fontSize:11,color:"var(--muted)",marginRight:8}}>{o.name}{o.price_delta?` +${money(o.price_delta,currency||"MXN")}`:""}</span>)}</div></article> }
+
+function SectionTitle({ eyebrow, title }: { eyebrow: string; title: string }) {
+  return <div className="section-title"><span>★</span><div><p className="eyebrow">{eyebrow}</p><h2>{title}</h2></div><span>★</span></div>;
+}
+
+function ProductCard({ item, currency }: { item: Product; currency?: string | null }) {
+  return <article className="product-card">
+    <div className="product-image-wrap">
+      {item.image_url ? <img className="product-image" src={item.image_url} alt={item.name} loading="lazy" /> : <div className="product-placeholder"><Utensils size={34} /><span>LA FIESTA BRAVA</span></div>}
+    </div>
+    <div className="product-info"><h3>{item.name}</h3><p>{item.description || "Preparado al momento."}</p></div>
+    <div className="price-ribbon"><strong>{money(item.price, currency || "MXN")}</strong><span>{item.slug.startsWith("tacos-") ? "C/U" : ""}</span></div>
+  </article>;
+}
+
+function ComboCard({ item, currency }: { item: Combo; currency?: string | null }) {
+  return <article className="combo-card">
+    <div className="combo-emblem"><span>FB</span><small>COMBO</small></div>
+    <div className="combo-info"><h3>{item.name}</h3><p>{item.description || item.items?.map((entry) => `${entry.quantity} × ${entry.product?.name || "Producto"}`).join(" · ")}</p></div>
+    <strong className="combo-price">{money(item.price, currency || "MXN")}</strong>
+  </article>;
+}
