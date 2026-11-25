@@ -6,7 +6,7 @@ import { fetchPublicMenu } from "@/lib/public-menu";
 import { money, weekdays } from "@/lib/format";
 import type { Combo, Product, PublicMenu } from "@/lib/types";
 
-const brandLogo = "https://mgnsoftware.github.io/FiestaBrava/assets/fiesta-brava-logo.png";
+const brandLogo = "https://mgnsoftware.github.io/FiestaBrava/assets/fiesta-brava-logo-cutout.png";
 
 export default function Home() {
   const [data, setData] = useState<PublicMenu | null>(null);
